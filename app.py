@@ -1,9 +1,12 @@
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from models import PredictionResponse
 from weather_service import WeatherService
 from disaster_predictor import DisasterPredictor
 from prevention_service import PreventionService
 import uvicorn
+import os
 
 app = FastAPI(
     title="Disaster Prediction and Prevention API",
@@ -11,13 +14,24 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Add CORS middleware to allow frontend to call the API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify your frontend domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 weather_service = WeatherService()
 disaster_predictor = DisasterPredictor()
 prevention_service = PreventionService()
 
-@app.get("/")
+@app.get("/", response_class=FileResponse)
 def read_root():
-    return {"message": "Welcome to the Disaster Prediction and Prevention API"}
+    """Serve the index.html file at the root route"""
+    index_path = os.path.join(os.path.dirname(__file__), "index.html")
+    return FileResponse(index_path)
 
 @app.get("/api/predict", response_model=PredictionResponse)
 def predict_disasters(location: str = Query(..., description="City name or lat,long coordinates")):
